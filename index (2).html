@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Мій бюджет</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: #E2DDD4;
+    --text: #1A1714;
+    --text2: #6B6560;
+    --text3: #A09A93;
+    --accent: #2D5A3D;
+    --accent-light: #E8F2EB;
+    --danger: #C0392B;
+    --danger-light: #FDECEA;
+    --warning: #8B6914;
+    --warning-light: #FEF6E4;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  nav { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .nav-inner { max-width: 480px; margin: 0 auto; display: flex; }
+  .nav-tab { flex: 1; padding: 14px 6px 12px; text-align: center; font-size: 11px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; letter-spacing: .03em; text-transform: uppercase; }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .page { display: none; max-width: 480px; margin: 0 auto; padding: 20px 16px 100px; }
+  .page.active { display: block; }
+
+  h1 { font-family: 'Instrument Serif', serif; font-size: 26px; font-weight: 400; color: var(--text); margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text3); margin-bottom: 18px; }
+
+  .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; margin-bottom: 12px; }
+  .card-sm { background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 8px; }
+
+  .month-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .month-label { font-family: 'Instrument Serif', serif; font-size: 22px; }
+  .month-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text2); }
+  .month-btn:active { background: var(--surface2); }
+
+  .income-block { background: var(--accent); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; color: #fff; }
+  .ib-label { font-size: 12px; opacity: .7; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .ib-val { font-family: 'Instrument Serif', serif; font-size: 32px; }
+  .ib-sub { font-size: 13px; opacity: .75; margin-top: 4px; }
+  .income-edit-btn { display: inline-block; margin-top: 12px; font-size: 13px; background: rgba(255,255,255,.2); border-radius: 20px; padding: 5px 14px; cursor: pointer; }
+
+  .deduct-flow { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 4px 0; margin-bottom: 12px; }
+  .df-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .df-row:last-child { border-bottom: none; }
+  .df-label { color: var(--text2); }
+  .df-val { font-weight: 500; }
+  .df-val.neg { color: var(--danger); }
+  .df-val.big { font-family: 'Instrument Serif', serif; font-size: 18px; color: var(--accent); }
+  .df-row.highlight { background: var(--accent-light); }
+
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .summary-card { background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 14px; }
+  .s-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .s-val { font-size: 20px; font-weight: 500; }
+  .s-val.green { color: var(--accent); }
+  .s-val.red { color: var(--danger); }
+
+  .env-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .env-name { font-size: 15px; font-weight: 500; }
+  .env-cat { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .env-spent { font-size: 15px; font-weight: 500; }
+  .env-remaining { font-size: 12px; margin-top: 2px; }
+  .env-remaining.ok { color: var(--accent); }
+  .env-remaining.warn { color: var(--warning); }
+  .env-remaining.over { color: var(--danger); }
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+  .fill-ok { background: var(--accent); }
+  .fill-warn { background: #D4A017; }
+  .fill-over { background: var(--danger); }
+
+  .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 26px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(45,90,61,.35); z-index: 200; transition: transform .15s; }
+  .fab:active { transform: scale(.93); }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,23,20,.5); z-index: 300; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 20px; }
+
+  label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; }
+  input, select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text); background: var(--surface); margin-bottom: 14px; outline: none; }
+  input:focus, select:focus { border-color: var(--accent); }
+  .btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--text2); margin-top: 8px; }
+  .btn:active { opacity: .8; }
+
+  .calc-preview { background: var(--accent-light); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 13px; color: var(--accent); line-height: 1.8; }
+  .calc-row { display: flex; justify-content: space-between; }
+  .calc-row.total { font-weight: 600; border-top: 1px solid rgba(45,90,61,.2); margin-top: 6px; padding-top: 6px; font-size: 14px; }
+
+  .exp-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .exp-item:last-child { border-bottom: none; }
+  .exp-left { display: flex; align-items: center; gap: 12px; }
+  .exp-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .exp-info .exp-name { font-size: 14px; font-weight: 500; }
+  .exp-info .exp-meta { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .exp-amount { font-size: 15px; font-weight: 500; color: var(--danger); }
+  .exp-delete { font-size: 20px; color: var(--text3); cursor: pointer; margin-left: 10px; padding: 4px; }
+
+  .goal-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; margin-bottom: 12px; }
+  .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .goal-name { font-size: 16px; font-weight: 500; }
+  .goal-emoji { font-size: 22px; }
+  .goal-amounts { display: flex; justify-content: space-between; font-size: 13px; color: var(--text3); margin-bottom: 6px; }
+  .goal-progress { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .goal-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+  .goal-pct { font-size: 12px; color: var(--accent); margin-top: 6px; font-weight: 500; }
+  .goal-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .goal-btn { flex: 1; padding: 8px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); }
+  .goal-btn:active { background: var(--border); }
+
+  .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 14px; }
+  .setting-value { font-size: 14px; font-weight: 500; color: var(--accent); cursor: pointer; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; line-height: 1.6; }
+
+  .no-income-banner { background: var(--warning-light); border: 1px solid #D4A017; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px; font-size: 14px; color: var(--warning); cursor: pointer; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-tab active" onclick="showPage('dashboard')">Огляд</div>
+    <div class="nav-tab" onclick="showPage('expenses')">Витрати</div>
+    <div class="nav-tab" onclick="showPage('goals')">Цілі</div>
+    <div class="nav-tab" onclick="showPage('settings')">Конверти</div>
+  </div>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="month-bar">
+    <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="month-label">—</span>
+    <button class="month-btn" onclick="changeMonth(1)">›</button>
+  </div>
+  <div id="dashboard-content"></div>
+</div>
+
+<!-- EXPENSES -->
+<div class="page" id="page-expenses">
+  <h1>Витрати</h1>
+  <p class="subtitle" id="exp-month-label"></p>
+  <div id="expense-list"></div>
+</div>
+
+<!-- GOALS -->
+<div class="page" id="page-goals">
+  <h1>Цілі</h1>
+  <p class="subtitle">Накопичення на мрії</p>
+  <div id="goals-list"></div>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="openGoalModal()">+ Нова ціль</button>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <h1>Конверти</h1>
+  <p class="subtitle">Щомісячні ліміти витрат</p>
+  <div id="settings-envelopes"></div>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="openEnvModal()">+ Новий конверт</button>
+  <div style="margin-top:28px">
+    <h1>Дані</h1>
+    <p class="subtitle">Керування</p>
+    <div class="card">
+      <div class="setting-row">
+        <span class="setting-label">Експортувати дані</span>
+        <span class="setting-value" onclick="exportData()">JSON ↓</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label" style="color:var(--danger)">Очистити всі дані</span>
+        <span class="setting-value" style="color:var(--danger)" onclick="clearData()">Видалити</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openExpModal()">+</button>
+
+<!-- INCOME MODAL -->
+<div class="modal-overlay" id="income-modal">
+  <div class="modal">
+    <div class="modal-title">Дохід за місяць</div>
+    <label>Отримано ($)</label>
+    <input type="number" id="inc-usd" placeholder="1400" inputmode="decimal" oninput="updateIncomePreview()">
+    <label>Курс долара (₴ за $1)</label>
+    <input type="number" id="inc-rate" placeholder="41" inputmode="decimal" oninput="updateIncomePreview()">
+    <div class="calc-preview" id="inc-preview" style="display:none"></div>
+    <button class="btn btn-primary" onclick="saveIncome()">Зберегти</button>
+    <button class="btn btn-ghost" onclick="closeModal('income-modal')">Скасувати</button>
+  </div>
+</div>
+
+<!-- EXPENSE MODAL -->
+<div class="modal-overlay" id="exp-modal">
+  <div class="modal">
+    <div class="modal-title">Нова витрата</div>
+    <label>Сума (₴)</label>
+    <input type="number" id="exp-amount" placeholder="0" inputmode="decimal">
+    <label>Назва</label>
+    <input type="text" id="exp-name" placeholder="Що купила?">
+    <label>Конверт</label>
+    <select id="exp-envelope"></select>
+    <label>Дата</label>
+    <input type="date" id="exp-date">
+    <button class="btn btn-primary" onclick="saveExpense()">Зберегти</button>
+    <button class="btn btn-ghost" onclick="closeModal('exp-modal')">Скасувати</button>
+  </div>
+</div>
+
+<!-- ENVELOPE MODAL -->
+<div class="modal-overlay" id="env-modal">
+  <div class="modal">
+    <div class="modal-title" id="env-modal-title">Новий конверт</div>
+    <label>Назва</label>
+    <input type="text" id="env-name" placeholder="Наприклад: Кафе">
+    <label>Бюджет на місяць (₴)</label>
+    <input type="number" id="env-budget" placeholder="0" inputmode="decimal">
+    <label>Іконка (emoji)</label>
+    <input type="text" id="env-icon" placeholder="🛍️" maxlength="2">
+    <label>Колір фону іконки</label>
+    <input type="color" id="env-color" value="#E8F2EB" style="height:44px;padding:4px 8px;cursor:pointer;">
+    <input type="hidden" id="env-edit-id">
+    <button class="btn btn-primary" onclick="saveEnvelope()">Зберегти</button>
+    <button class="btn btn-ghost" onclick="closeModal('env-modal')">Скасувати</button>
+  </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <div class="modal-title" id="goal-modal-title">Нова ціль</div>
+    <label>Назва</label>
+    <input type="text" id="goal-name" placeholder="Власне житло">
+    <label>Ціль (₴)</label>
+    <input type="number" id="goal-target" placeholder="0" inputmode="decimal">
+    <label>Вже накопичено (₴)</label>
+    <input type="number" id="goal-saved" placeholder="0" inputmode="decimal">
+    <label>Іконка</label>
+    <input type="text" id="goal-icon" placeholder="🏠" maxlength="2">
+    <input type="hidden" id="goal-edit-id">
+    <button class="btn btn-primary" onclick="saveGoal()">Зберегти</button>
+    <button class="btn btn-ghost" onclick="closeModal('goal-modal')">Скасувати</button>
+  </div>
+</div>
+
+<!-- ADD TO GOAL MODAL -->
+<div class="modal-overlay" id="goal-add-modal">
+  <div class="modal">
+    <div class="modal-title">Поповнити ціль</div>
+    <label>Сума (₴)</label>
+    <input type="number" id="goal-add-amount" placeholder="0" inputmode="decimal">
+    <input type="hidden" id="goal-add-id">
+    <button class="btn btn-primary" onclick="addToGoal()">Зберегти</button>
+    <button class="btn btn-ghost" onclick="closeModal('goal-add-modal')">Скасувати</button>
+  </div>
+</div>
+
+<script>
+const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+const TAX_EP = 0.05, TAX_VZ = 0.01, TAX_ESV = 1902.34, ACADEMY = 0.12;
+
+let state = {
+  currentMonth: new Date().toISOString().slice(0,7),
+  monthIncomes: {},
+  envelopes: [
+    { id:'env1',  name:'Їжа',         budget:6500,  icon:'🛒', color:'#E8F2EB' },
+    { id:'env2',  name:'Спортзал',    budget:3000,  icon:'💪', color:'#E8F2EB' },
+    { id:'env3',  name:'Комуналка',   budget:1500,  icon:'🏠', color:'#FEF6E4' },
+    { id:'env4',  name:'Транспорт',   budget:1500,  icon:'🚌', color:'#FEF6E4' },
+    { id:'env5',  name:'Краса',       budget:2500,  icon:'💅', color:'#FDE8F0' },
+    { id:'env6',  name:'Підписки',    budget:1161,  icon:'📱', color:'#EDE8FE' },
+    { id:'env7',  name:'Одяг',        budget:2000,  icon:'👗', color:'#FDE8F0' },
+    { id:'env8',  name:'Косметика',   budget:800,   icon:'💄', color:'#FDE8F0' },
+    { id:'env9',  name:'Сестра',      budget:1000,  icon:'👧', color:'#E8F2EB' },
+    { id:'env10', name:'Імпульсивне', budget:1000,  icon:'🛍️', color:'#FEF6E4' },
+    { id:'env11', name:'Телефон',     budget:500,   icon:'📞', color:'#EDE8FE' },
+  ],
+  goals: [
+    { id:'g1', name:'Власне житло',   target:500000, saved:0, icon:'🏠' },
+    { id:'g2', name:'Форс-мажор',     target:70000,  saved:0, icon:'🆘' },
+    { id:'g3', name:'Інвестиції IB',  target:50000,  saved:0, icon:'📈' },
+    { id:'g4', name:'Новий телефон',  target:20000,  saved:0, icon:'📱' },
+  ],
+  expenses: []
+};
+
+function loadState() { const s = localStorage.getItem('budget_v3'); if (s) state = JSON.parse(s); }
+function saveState() { localStorage.setItem('budget_v3', JSON.stringify(state)); }
+loadState();
+
+function calcIncome(usd, rate) {
+  const gross = usd * rate;
+  const ep = gross * TAX_EP, vz = gross * TAX_VZ, esv = TAX_ESV;
+  const taxes = ep + vz + esv;
+  const afterTax = gross - taxes;
+  const academy = afterTax * ACADEMY;
+  const net = afterTax - academy;
+  return { gross, ep, vz, esv, taxes, afterTax, academy, net };
+}
+
+function fmt(n) { return Math.round(n).toLocaleString('uk-UA') + ' ₴'; }
+function fmtNo(n) { return Math.round(n).toLocaleString('uk-UA'); }
+function monthLabel(ym) { const [y,m] = ym.split('-'); return MONTHS_UK[parseInt(m)-1] + ' ' + y; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function monthExpenses(ym) { return state.expenses.filter(e => e.date.startsWith(ym)); }
+function spentInEnv(id, ym) { return monthExpenses(ym).filter(e => e.envId===id).reduce((s,e)=>s+e.amount,0); }
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  ['dashboard','expenses','goals','settings'].forEach((n,i)=>{ if(n===id) document.querySelectorAll('.nav-tab')[i].classList.add('active'); });
+  render();
+}
+
+function changeMonth(d) {
+  const [y,m] = state.currentMonth.split('-').map(Number);
+  const dt = new Date(y, m-1+d, 1);
+  state.currentMonth = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  saveState(); render();
+}
+
+function renderDashboard() {
+  const ym = state.currentMonth;
+  document.getElementById('month-label').textContent = monthLabel(ym);
+  const inc = state.monthIncomes[ym];
+  const el = document.getElementById('dashboard-content');
+
+  if (!inc) {
+    el.innerHTML = `<div class="no-income-banner" onclick="openIncomeModal()">
+      💰 Дохід за ${monthLabel(ym)} ще не введено.<br><strong>Натисни щоб додати →</strong>
+    </div><div id="envelope-list"></div>`;
+    renderEnvelopes(ym); return;
+  }
+
+  const c = calcIncome(inc.usd, inc.rate);
+  const totalSpent = monthExpenses(ym).reduce((s,e)=>s+e.amount,0);
+  const freeLeft = c.net - totalSpent;
+
+  el.innerHTML = `
+    <div class="income-block">
+      <div class="ib-label">Отримано цього місяця</div>
+      <div class="ib-val">$${fmtNo(inc.usd)}</div>
+      <div class="ib-sub">× ${inc.rate} ₴/$ = ${fmt(c.gross)}</div>
+      <div class="income-edit-btn" onclick="openIncomeModal()">✎ Змінити</div>
+    </div>
+    <div class="deduct-flow">
+      <div class="df-row"><span class="df-label">Дохід (грн)</span><span class="df-val">${fmt(c.gross)}</span></div>
+      <div class="df-row"><span class="df-label">ЄП 5%</span><span class="df-val neg">− ${fmt(c.ep)}</span></div>
+      <div class="df-row"><span class="df-label">ВЗ 1%</span><span class="df-val neg">− ${fmt(c.vz)}</span></div>
+      <div class="df-row"><span class="df-label">ЄСВ (фікс.)</span><span class="df-val neg">− ${fmt(c.esv)}</span></div>
+      <div class="df-row highlight"><span class="df-label" style="color:var(--accent);font-weight:500">Після податків</span><span class="df-val big">${fmt(c.afterTax)}</span></div>
+      <div class="df-row"><span class="df-label">Академія 12%</span><span class="df-val neg">− ${fmt(c.academy)}</span></div>
+      <div class="df-row highlight"><span class="df-label" style="color:var(--accent);font-weight:600">Чистий залишок</span><span class="df-val big">${fmt(c.net)}</span></div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="s-label">Витрачено</div><div class="s-val red">${fmt(totalSpent)}</div></div>
+      <div class="summary-card"><div class="s-label">Вільно</div><div class="s-val ${freeLeft>=0?'green':'red'}">${fmt(freeLeft)}</div></div>
+    </div>
+    <h1 style="margin-bottom:4px">Конверти</h1>
+    <p class="subtitle">Витрати з бюджету цього місяця</p>
+    <div id="envelope-list"></div>`;
+  renderEnvelopes(ym);
+}
+
+function renderEnvelopes(ym) {
+  const el = document.getElementById('envelope-list');
+  if (!el) return;
+  if (!state.envelopes.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>Конвертів немає</p></div>'; return; }
+  el.innerHTML = state.envelopes.map(env => {
+    const spent = spentInEnv(env.id, ym);
+    const pct = env.budget>0 ? Math.min(100, spent/env.budget*100) : 0;
+    const rem = env.budget - spent;
+    const st = pct<70?'ok':pct<100?'warn':'over';
+    const fc = {ok:'fill-ok',warn:'fill-warn',over:'fill-over'}[st];
+    return `<div class="card" style="padding:16px">
+      <div class="env-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:${env.color};display:flex;align-items:center;justify-content:center;font-size:17px">${env.icon}</div>
+          <div><div class="env-name">${env.name}</div><div class="env-cat">ліміт ${fmt(env.budget)}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="env-spent">${fmt(spent)}</div>
+          <div class="env-remaining ${st}">${rem>=0?'залишок '+fmt(rem):'перевитрата '+fmt(-rem)}</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill ${fc}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderExpenses() {
+  const ym = state.currentMonth;
+  document.getElementById('exp-month-label').textContent = monthLabel(ym);
+  const exps = monthExpenses(ym).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const el = document.getElementById('expense-list');
+  if (!exps.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🧾</div><p>Витрат за цей місяць немає.<br>Натисни + щоб додати</p></div>'; return; }
+  el.innerHTML = exps.map(e => {
+    const env = state.envelopes.find(v=>v.id===e.envId)||{};
+    const ds = e.date.split('-').reverse().join('.');
+    return `<div class="card-sm"><div class="exp-item" style="padding:0">
+      <div class="exp-left">
+        <div class="exp-icon" style="background:${env.color||'#F0EDE6'}">${env.icon||'💸'}</div>
+        <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-meta">${ds} · ${env.name||'—'}</div></div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <div class="exp-amount">−${fmt(e.amount)}</div>
+        <div class="exp-delete" onclick="deleteExpense('${e.id}')">×</div>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  if (!state.goals.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div><p>Цілей немає</p></div>'; return; }
+  el.innerHTML = state.goals.map(g => {
+    const pct = g.target>0 ? Math.min(100, g.saved/g.target*100) : 0;
+    return `<div class="goal-card">
+      <div class="goal-header"><div class="goal-name">${g.name}</div><div class="goal-emoji">${g.icon}</div></div>
+      <div class="goal-amounts"><span>${fmt(g.saved)} накопичено</span><span>ціль ${fmt(g.target)}</span></div>
+      <div class="goal-progress"><div class="goal-fill" style="width:${pct}%"></div></div>
+      <div class="goal-pct">${pct.toFixed(1)}%</div>
+      <div class="goal-actions">
+        <button class="goal-btn" onclick="openAddToGoal('${g.id}')">+ Поповнити</button>
+        <button class="goal-btn" onclick="openGoalModal('${g.id}')">Редагувати</button>
+        <button class="goal-btn" style="flex:none;color:var(--danger)" onclick="deleteGoal('${g.id}')">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSettings() {
+  document.getElementById('settings-envelopes').innerHTML = state.envelopes.map(env=>`
+    <div class="card-sm"><div class="setting-row" style="padding:4px 0">
+      <span class="setting-label">${env.icon} ${env.name}</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:14px;font-weight:500">${fmt(env.budget)}</span>
+        <span style="cursor:pointer;color:var(--accent);font-size:14px;font-weight:500" onclick="openEnvModal('${env.id}')">✎</span>
+        <span style="cursor:pointer;color:var(--danger);font-size:16px" onclick="deleteEnvelope('${env.id}')">×</span>
+      </div>
+    </div></div>`).join('');
+}
+
+function render() { renderDashboard(); renderExpenses(); renderGoals(); renderSettings(); }
+
+// INCOME
+function openIncomeModal() {
+  const inc = state.monthIncomes[state.currentMonth];
+  document.getElementById('inc-usd').value = inc ? inc.usd : '';
+  document.getElementById('inc-rate').value = inc ? inc.rate : '';
+  document.getElementById('inc-preview').style.display = 'none';
+  document.getElementById('income-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('inc-usd').focus(),100);
+}
+function updateIncomePreview() {
+  const usd = parseFloat(document.getElementById('inc-usd').value);
+  const rate = parseFloat(document.getElementById('inc-rate').value);
+  const el = document.getElementById('inc-preview');
+  if (!usd||!rate) { el.style.display='none'; return; }
+  const c = calcIncome(usd, rate);
+  el.style.display='block';
+  el.innerHTML=`
+    <div class="calc-row"><span>${usd}$ × ${rate}</span><span>${fmt(c.gross)}</span></div>
+    <div class="calc-row"><span>ЄП + ВЗ + ЄСВ</span><span>− ${fmt(c.taxes)}</span></div>
+    <div class="calc-row"><span>Після податків</span><span>${fmt(c.afterTax)}</span></div>
+    <div class="calc-row"><span>Академія 12%</span><span>− ${fmt(c.academy)}</span></div>
+    <div class="calc-row total"><span>Чистий залишок</span><span>${fmt(c.net)}</span></div>`;
+}
+function saveIncome() {
+  const usd = parseFloat(document.getElementById('inc-usd').value);
+  const rate = parseFloat(document.getElementById('inc-rate').value);
+  if (!usd||!rate) return;
+  state.monthIncomes[state.currentMonth] = { usd, rate };
+  saveState(); closeModal('income-modal'); render();
+}
+
+// EXPENSES
+function openExpModal() {
+  document.getElementById('exp-envelope').innerHTML = state.envelopes.map(e=>`<option value="${e.id}">${e.icon} ${e.name}</option>`).join('');
+  document.getElementById('exp-date').value = todayStr();
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-name').value = '';
+  document.getElementById('exp-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('exp-amount').focus(),100);
+}
+function saveExpense() {
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const name = document.getElementById('exp-name').value.trim()||'Витрата';
+  const envId = document.getElementById('exp-envelope').value;
+  const date = document.getElementById('exp-date').value;
+  if (!amount||amount<=0) return;
+  state.expenses.push({id:'e'+Date.now(),amount,name,envId,date});
+  saveState(); closeModal('exp-modal'); render();
+}
+function deleteExpense(id) {
+  if (!confirm('Видалити цю витрату?')) return;
+  state.expenses = state.expenses.filter(e=>e.id!==id);
+  saveState(); render();
+}
+
+// ENVELOPES
+function openEnvModal(id) {
+  document.getElementById('env-edit-id').value = id||'';
+  if (id) {
+    const e = state.envelopes.find(e=>e.id===id);
+    document.getElementById('env-modal-title').textContent='Редагувати конверт';
+    document.getElementById('env-name').value=e.name;
+    document.getElementById('env-budget').value=e.budget;
+    document.getElementById('env-icon').value=e.icon;
+    document.getElementById('env-color').value=e.color;
+  } else {
+    document.getElementById('env-modal-title').textContent='Новий конверт';
+    ['env-name','env-budget','env-icon'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('env-color').value='#E8F2EB';
+  }
+  document.getElementById('env-modal').classList.add('open');
+}
+function saveEnvelope() {
+  const name=document.getElementById('env-name').value.trim();
+  const budget=parseFloat(document.getElementById('env-budget').value)||0;
+  const icon=document.getElementById('env-icon').value||'📦';
+  const color=document.getElementById('env-color').value;
+  const editId=document.getElementById('env-edit-id').value;
+  if (!name) return;
+  if (editId) Object.assign(state.envelopes.find(e=>e.id===editId),{name,budget,icon,color});
+  else state.envelopes.push({id:'env'+Date.now(),name,budget,icon,color});
+  saveState(); closeModal('env-modal'); render();
+}
+function deleteEnvelope(id) {
+  if (!confirm('Видалити конверт?')) return;
+  state.envelopes=state.envelopes.filter(e=>e.id!==id);
+  saveState(); render();
+}
+
+// GOALS
+function openGoalModal(id) {
+  document.getElementById('goal-edit-id').value=id||'';
+  if (id) {
+    const g=state.goals.find(g=>g.id===id);
+    document.getElementById('goal-modal-title').textContent='Редагувати ціль';
+    document.getElementById('goal-name').value=g.name;
+    document.getElementById('goal-target').value=g.target;
+    document.getElementById('goal-saved').value=g.saved;
+    document.getElementById('goal-icon').value=g.icon;
+  } else {
+    document.getElementById('goal-modal-title').textContent='Нова ціль';
+    ['goal-name','goal-target','goal-saved','goal-icon'].forEach(i=>document.getElementById(i).value='');
+  }
+  document.getElementById('goal-modal').classList.add('open');
+}
+function saveGoal() {
+  const name=document.getElementById('goal-name').value.trim();
+  const target=parseFloat(document.getElementById('goal-target').value)||0;
+  const saved=parseFloat(document.getElementById('goal-saved').value)||0;
+  const icon=document.getElementById('goal-icon').value||'🎯';
+  const editId=document.getElementById('goal-edit-id').value;
+  if (!name) return;
+  if (editId) Object.assign(state.goals.find(g=>g.id===editId),{name,target,saved,icon});
+  else state.goals.push({id:'g'+Date.now(),name,target,saved,icon});
+  saveState(); closeModal('goal-modal'); render();
+}
+function deleteGoal(id) {
+  if (!confirm('Видалити ціль?')) return;
+  state.goals=state.goals.filter(g=>g.id!==id);
+  saveState(); render();
+}
+function openAddToGoal(id) {
+  document.getElementById('goal-add-id').value=id;
+  document.getElementById('goal-add-amount').value='';
+  document.getElementById('goal-add-modal').classList.add('open');
+}
+function addToGoal() {
+  const id=document.getElementById('goal-add-id').value;
+  const amount=parseFloat(document.getElementById('goal-add-amount').value)||0;
+  const g=state.goals.find(g=>g.id===id);
+  if (g&&amount>0) { g.saved=Math.min(g.target,g.saved+amount); saveState(); }
+  closeModal('goal-add-modal'); render();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function exportData() {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));
+  a.download='budget_export.json'; a.click();
+}
+function clearData() {
+  if (confirm('Видалити ВСІ дані? Це незворотно.')) { localStorage.removeItem('budget_v3'); location.reload(); }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+
+render();
+</script>
+</body>
+</html>
